@@ -1,0 +1,33 @@
+name: Fiyat
+# Saat başı: okuduklari.com'un en çok önerilen kitaplarının fiyatları; veri bu depoya tek işlem olarak yazılır (geçmiş birikmez).
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+concurrency:
+  group: fiyat
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  topla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install --no-audit --no-fund
+      - run: npx tsx scripts/fiyat-topla.mts
+        env:
+          FIYAT_KITAPLAR: https://okuduklari.com/fiyat-kitaplar.json
+          FIYAT_CIKTI: veri
+          FIYAT_N: '400'
+      - name: Yaz
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898237+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan yeni
+          git add -A
+          git commit -qm "Fiyatlar $(date -u +%FT%H:%MZ)"
+          git push -f origin yeni:main
